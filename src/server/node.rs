@@ -133,7 +133,7 @@ where
     where
         T: Transport + 'static,
     {
-        let bootstrapped = self.check_cluster_bootstrapped()?;
+        let bootstrapped = self.check_cluster_bootstrapped()?; /// 初次启动集群是没有bootstrapped的
         let mut store_id = self.check_store(&engines)?;
         if store_id == INVALID_ID {
             store_id = self.bootstrap_store(&engines)?;
@@ -150,10 +150,12 @@ where
 
         self.store.set_id(store_id);
         self.check_prepare_bootstrap_cluster(&engines)?;
-        if !bootstrapped {
+        if !bootstrapped { /// 初次启动集群是没有bootstrapped的
             // cluster is not bootstrapped, and we choose first store to bootstrap
             // prepare bootstrap.
+            /// 初次启动应该申请第一个region去引导集群，正常情况下引导程序应该只走一次
             let region = self.prepare_bootstrap_cluster(&engines, store_id)?;
+            /// 拿着第一个region向pd报告并初始化集群。
             self.bootstrap_cluster(&engines, region)?;
         }
 
@@ -235,6 +237,7 @@ where
             self.cluster_id,
             store_id
         );
+        /// 第一个bootstrap的tikv实例申请第一个region的副本的peer id(猜测pd收到心跳的时候应该有个id代表着不同的addr)
         let peer_id = self.alloc_id()?;
         info!(
             "alloc first peer id {} for first region {}",
@@ -250,7 +253,7 @@ where
         let res = engines
             .kv_engine
             .get_msg::<metapb::Region>(&keys::prepare_bootstrap_key())?;
-        if res.is_none() {
+        if res.is_none() { /// 如果没有第一个region，则认为集群为空？
             return Ok(());
         }
 
@@ -278,6 +281,7 @@ where
         Err(box_err!("check cluster prepare bootstrapped failed"))
     }
 
+    /// 拿着第一个region向pd报告并初始化集群。
     fn bootstrap_cluster(&mut self, engines: &Engines, region: metapb::Region) -> Result<()> {
         let region_id = region.get_id();
         match self.pd_client.bootstrap_cluster(self.store.clone(), region) {

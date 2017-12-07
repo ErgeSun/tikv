@@ -110,6 +110,10 @@ pub fn clear_prepare_bootstrap_state(engines: &Engines) -> Result<()> {
     Ok(())
 }
 
+/// 准备第一个region，第一个region的上下界都是空，可接受任何范围内的数据。
+/// 这里不得不强调一下TiKV的实现了：
+///   创建表的时候会触发region split(看配置)，代码在ddl/table.go::splitTableRegion，
+///   其会通过表的行键的prefix来作为中间点去分隔两个region，这样的好处显而易见，直接实现了其全局有序行按表聚集以达到高性能list的目的。
 // Prepare bootstrap.
 pub fn prepare_bootstrap(
     engines: &Engines,

@@ -70,7 +70,9 @@ const PENDING_VOTES_CAP: usize = 20;
 
 #[derive(Clone)]
 pub struct Engines {
+    /// 存储region数据的db
     pub kv_engine: Arc<DB>,
+    /// 存储raft日志的db
     pub raft_engine: Arc<DB>,
 }
 
