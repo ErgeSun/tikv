@@ -129,6 +129,7 @@ impl Row {
 
 pub trait Executor {
     fn next(&mut self) -> Result<Option<Row>>;
+    fn collect_output_counts(&mut self, counts: &mut Vec<i64>);
     fn collect_statistics_into(&mut self, stats: &mut Statistics);
 }
 
@@ -202,7 +203,13 @@ fn build_first_executor(
         }
         ExecType::TypeIndexScan => {
             let cols = Arc::new(first.get_idx_scan().get_columns().to_vec());
-            let ex = Box::new(IndexScanExecutor::new(first.take_idx_scan(), ranges, store));
+            let unique = first.get_idx_scan().get_unique();
+            let ex = Box::new(IndexScanExecutor::new(
+                first.take_idx_scan(),
+                ranges,
+                store,
+                unique,
+            ));
             Ok((ex, cols))
         }
         _ => Err(box_err!(
