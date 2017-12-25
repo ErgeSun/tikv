@@ -503,6 +503,7 @@ impl<T: Transport, C: PdClient> Store<T, C> {
         self.register_compact_lock_cf_tick(event_loop);
         self.register_consistency_check_tick(event_loop);
 
+        /// region split检查器
         let split_check_runner = SplitCheckRunner::new(
             self.kv_engine.clone(),
             self.sendch.clone(),
@@ -511,6 +512,7 @@ impl<T: Transport, C: PdClient> Store<T, C> {
 
         box_try!(self.split_check_worker.start(split_check_runner));
 
+        /// region snapshot相关？
         let runner = RegionRunner::new(
             self.kv_engine.clone(),
             self.raft_engine.clone(),
@@ -519,12 +521,15 @@ impl<T: Transport, C: PdClient> Store<T, C> {
         );
         box_try!(self.region_worker.start(runner));
 
+        /// GC(MVCC的旧版本数据的GC)检查器
         let raftlog_gc_runner = RaftlogGcRunner::new(None);
         box_try!(self.raftlog_gc_worker.start(raftlog_gc_runner));
 
+        /// 定时的local rocksdb compact触发器.compact_worker会有timer触发tick等方式回调compact_runner的run方法
         let compact_runner = CompactRunner::new(self.kv_engine.clone());
         box_try!(self.compact_worker.start(compact_runner));
 
+        /// 负责与pd的交互: heartbeat、ask split region等PdTask task的处理。
         let pd_runner = PdRunner::new(
             self.store_id(),
             self.pd_client.clone(),
@@ -533,12 +538,14 @@ impl<T: Transport, C: PdClient> Store<T, C> {
         );
         box_try!(self.pd_worker.start(pd_runner));
 
+        /// region的一致性检查器
         let consistency_check_runner = ConsistencyCheckRunner::new(self.sendch.clone());
         box_try!(
             self.consistency_check_worker
                 .start(consistency_check_runner)
         );
 
+        /// raft相关
         let (tx, rx) = mpsc::channel();
         let apply_runner = ApplyRunner::new(self, tx, self.cfg.sync_log);
         self.apply_res_receiver = Some(rx);
@@ -2523,6 +2530,7 @@ impl<T: Transport, C: PdClient> mio::Handler for Store<T, C> {
             self.on_raft_ready();
         }
 
+        /// TODO(sunchao): 确认下为什么不异步？
         self.poll_apply();
 
         self.pending_snapshot_regions.clear();

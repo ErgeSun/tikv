@@ -138,6 +138,7 @@ impl Display for Task {
     }
 }
 
+/// 拥有fn run(&mut self, task: Task)方法
 pub struct Runner<C> {
     engine: Arc<DB>,
     ch: RetryableSendCh<Msg, C>,
