@@ -1,4 +1,4 @@
-// Copyright 2017 PingCAP, Inc.
+// Copyright 2018 PingCAP, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,7 +11,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod aggregate;
-pub mod xeval;
-pub mod select;
-pub mod topn_heap;
+mod config;
+mod errors;
+mod metrics;
+#[macro_use]
+mod service;
+mod sst_service;
+mod sst_importer;
+
+pub mod test_helpers;
+
+pub use self::config::Config;
+pub use self::errors::{Error, Result};
+pub use self::sst_service::ImportSSTService;
+pub use self::sst_importer::SSTImporter;

@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
+use std::sync::Arc;
 use std::thread::*;
 use std::time::*;
 
@@ -21,16 +21,15 @@ use tikv::util::config::*;
 use raftstore::node::new_node_cluster;
 use raftstore::util::*;
 
-
 #[test]
 fn test_pending_peers() {
     let _guard = ::setup();
     let mut cluster = new_node_cluster(0, 3);
     cluster.cfg.raft_store.pd_heartbeat_tick_interval = ReadableDuration::millis(100);
 
-    let region_worker_fp = "tikv::raftstore::store::worker::region::apply_snap";
+    let region_worker_fp = "region_apply_snap";
 
-    let pd_client = cluster.pd_client.clone();
+    let pd_client = Arc::clone(&cluster.pd_client);
     // Disable default max peer count check.
     pd_client.disable_default_rule();
 

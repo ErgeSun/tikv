@@ -21,12 +21,12 @@ use tipb::expression::ByItem;
 
 use coprocessor::codec::datum::Datum;
 use coprocessor::Result;
-use coprocessor::select::xeval::EvalContext;
-use coprocessor::dag::expr::Expression;
-use coprocessor::select::topn_heap::{SortRow, TopNHeap};
+use coprocessor::dag::expr::{EvalContext, Expression};
 use coprocessor::metrics::*;
+use coprocessor::local_metrics::*;
 use storage::Statistics;
 
+use super::topn_heap::{SortRow, TopNHeap};
 use super::{inflate_with_col_for_dag, Executor, ExprColumnRefVisitor, Row};
 
 struct OrderBy {
@@ -106,8 +106,8 @@ impl TopNExecutor {
                 row.handle,
                 row.data,
                 ob_values,
-                self.order_by.items.clone(),
-                self.ctx.clone(),
+                Arc::clone(&self.order_by.items),
+                Arc::clone(&self.ctx),
             )?;
         }
         Ok(())
@@ -142,8 +142,11 @@ impl Executor for TopNExecutor {
     fn collect_statistics_into(&mut self, statistics: &mut Statistics) {
         self.src.collect_statistics_into(statistics);
     }
-}
 
+    fn collect_metrics_into(&mut self, metrics: &mut ScanCounter) {
+        self.src.collect_metrics_into(metrics);
+    }
+}
 
 #[cfg(test)]
 pub mod test {
@@ -276,11 +279,11 @@ pub mod test {
             let row_data = RowColsDict::new(HashMap::default(), data.into_bytes());
             topn_heap
                 .try_add_row(
-                    handle as i64,
+                    i64::from(handle),
                     row_data,
                     ob_values,
-                    order_cols.clone(),
-                    ctx.clone(),
+                    Arc::clone(&order_cols),
+                    Arc::clone(&ctx),
                 )
                 .unwrap();
         }
@@ -309,8 +312,8 @@ pub mod test {
                 0 as i64,
                 row_data,
                 ob_values1,
-                order_cols.clone(),
-                ctx.clone(),
+                Arc::clone(&order_cols),
+                Arc::clone(&ctx),
             )
             .unwrap();
 
@@ -321,8 +324,8 @@ pub mod test {
                 0 as i64,
                 row_data2,
                 ob_values2,
-                order_cols.clone(),
-                ctx.clone(),
+                Arc::clone(&order_cols),
+                Arc::clone(&ctx),
             )
             .unwrap();
 
@@ -335,8 +338,8 @@ pub mod test {
                     0 as i64,
                     row_data3,
                     bad_key1,
-                    order_cols.clone(),
-                    ctx.clone()
+                    Arc::clone(&order_cols),
+                    Arc::clone(&ctx)
                 )
                 .is_err()
         );

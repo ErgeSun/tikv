@@ -11,8 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use std::*;
+use std::sync::Arc;
 use std::time::*;
 
 use fail;
@@ -21,7 +21,6 @@ use tikv::util::config::*;
 use raftstore::node::new_node_cluster;
 use raftstore::util::*;
 
-
 #[test]
 fn test_overlap_cleanup() {
     let _guard = ::setup();
@@ -29,9 +28,9 @@ fn test_overlap_cleanup() {
     // Disable raft log gc in this test case.
     cluster.cfg.raft_store.raft_log_gc_tick_interval = ReadableDuration::secs(60);
 
-    let gen_snapshot_fp = "tikv::raftstore::store::worker::region::handle_gen";
+    let gen_snapshot_fp = "region_gen_snap";
 
-    let pd_client = cluster.pd_client.clone();
+    let pd_client = Arc::clone(&cluster.pd_client);
     // Disable default max peer count check.
     pd_client.disable_default_rule();
 

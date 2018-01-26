@@ -74,6 +74,7 @@ report-region-flow-interval = "12m"
 raft-store-max-leader-lease = "12s"
 right-derive-when-split = false
 allow-remove-leader = true
+use-delete-range = true
 
 [coprocessor]
 split-region-on-table = true
@@ -103,7 +104,6 @@ max-sub-compactions = 12
 writable-file-max-buffer-size = "12MB"
 use-direct-io-for-flush-and-compaction = true
 enable-pipelined-write = false
-backup-dir = "/var"
 
 [rocksdb.defaultcf]
 block-size = "12KB"
@@ -302,3 +302,7 @@ max-bytes-for-level-multiplier = 8
 ca-path = "invalid path"
 cert-path = "invalid path"
 key-path = "invalid path"
+
+[import]
+num-threads = 123
+stream-channel-window = 123

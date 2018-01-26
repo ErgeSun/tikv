@@ -11,7 +11,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 mod metrics;
 mod client;
 mod util;
@@ -178,6 +177,11 @@ pub trait PdClient: Send + Sync {
 
     // Report pd the split region.
     fn report_split(&self, left: metapb::Region, right: metapb::Region) -> PdFuture<()>;
+
+    // Scatter the region across the cluster.
+    fn scatter_region(&self, _: RegionInfo) -> Result<()> {
+        unimplemented!();
+    }
 }
 
 const REQUEST_TIMEOUT: u64 = 2; // 2s

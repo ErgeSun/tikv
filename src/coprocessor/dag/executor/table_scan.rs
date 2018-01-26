@@ -20,12 +20,12 @@ use coprocessor::codec::table;
 use coprocessor::endpoint::is_point;
 use coprocessor::{Error, Result};
 use coprocessor::metrics::*;
+use coprocessor::local_metrics::*;
 use storage::{Key, SnapshotStore, Statistics};
 use util::collections::HashSet;
 
 use super::{Executor, Row};
 use super::scanner::{ScanOn, Scanner};
-
 
 pub struct TableScanExecutor {
     store: SnapshotStore,
@@ -35,6 +35,7 @@ pub struct TableScanExecutor {
     key_ranges: IntoIter<KeyRange>,
     scanner: Option<Scanner>,
     count: i64,
+    scan_counter: ScanCounter,
 }
 
 impl TableScanExecutor {
@@ -64,12 +65,13 @@ impl TableScanExecutor {
             key_ranges: key_ranges.into_iter(),
             scanner: None,
             count: 0,
+            scan_counter: ScanCounter::default(),
         }
     }
 
     fn get_row_from_range_scanner(&mut self) -> Result<Option<Row>> {
         if let Some(scanner) = self.scanner.as_mut() {
-            COPR_GET_OR_SCAN_COUNT.with_label_values(&["range"]).inc();
+            self.scan_counter.inc_range();
             let (key, value) = match scanner.next_row()? {
                 Some((key, value)) => (key, value),
                 None => return Ok(None),
@@ -113,7 +115,7 @@ impl Executor for TableScanExecutor {
 
             if let Some(range) = self.key_ranges.next() {
                 if is_point(&range) {
-                    COPR_GET_OR_SCAN_COUNT.with_label_values(&["point"]).inc();
+                    self.scan_counter.inc_point();
                     if let Some(row) = self.get_row_from_point(range)? {
                         self.count += 1;
                         return Ok(Some(row));
@@ -144,6 +146,10 @@ impl Executor for TableScanExecutor {
         if let Some(scanner) = self.scanner.take() {
             scanner.collect_statistics_into(statistics);
         }
+    }
+
+    fn collect_metrics_into(&mut self, metrics: &mut ScanCounter) {
+        metrics.merge(&mut self.scan_counter);
     }
 }
 
